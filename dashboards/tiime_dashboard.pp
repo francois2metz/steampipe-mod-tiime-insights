@@ -4,12 +4,12 @@ dashboard "tiime_dashboard" {
   container {
     card {
       query = query.tiime_billed_this_month
-      width = 3
+      width = 6
     }
 
     card {
       query = query.tiime_client_owns
-      width = 3
+      width = 6
     }
   }
 
@@ -19,7 +19,8 @@ dashboard "tiime_dashboard" {
       width = 2
       sql = <<-EOQ
         select
-          *
+          label,
+          value
         from
           (values
             ('Last 3 month', date_trunc('month', current_date - interval '3 month')),
@@ -30,27 +31,48 @@ dashboard "tiime_dashboard" {
       EOQ
     }
 
-    chart {
-      type = "bar"
-      title = "Billed by type"
+    container {
+      card {
+        width = 3
+        query = query.tiime_period_billed
+        args = {
+          "label" = "Billed on the current period"
+          "period" = self.input.period.value
+        }
+      }
+    }
 
-      legend {
-        display  = "auto"
-        position = "top"
+
+    container {
+      chart {
+        type = "bar"
+        title = "Billed by type"
+        width = 8
+
+        series benefit {
+          title = "Benefit"
+          color = "green"
+        }
+        series sale {
+          title = "Sale"
+          color = "red"
+        }
+
+        query = query.tiime_period_bill_by_month_type
+        args = {
+          "period" = self.input.period.value
+        }
       }
 
-      series benefit {
-        title = "Benefit"
-        color = "green"
-      }
-      series sale {
-        title = "Sale"
-        color = "red"
-      }
+      chart {
+        type = "donut"
+        title = "Repartition"
+        width = 4
 
-      query = query.tiime_bill_by_type
-      args = {
-        "period" = self.input.period.value
+        query = query.tiime_period_bill_by_type
+        args = {
+          "period" = self.input.period.value
+        }
       }
     }
   }
@@ -69,6 +91,22 @@ query "tiime_billed_this_month" {
   EOQ
 }
 
+query "tiime_period_billed" {
+  sql = <<-EOQ
+    select
+      sum(total_excluding_taxes) as value,
+      $2 as label,
+      'receipt_long' as icon
+    from
+      tiime_invoice
+    where
+      emission_date >= $1
+  EOQ
+
+  param "period" {}
+  param "label" {}
+}
+
 query "tiime_client_owns" {
   sql = <<-EOQ
     select
@@ -80,7 +118,7 @@ query "tiime_client_owns" {
   EOQ
 }
 
-query tiime_bill_by_type {
+query tiime_period_bill_by_month_type {
   sql = <<-EOQ
     with invoices as (
       select
@@ -125,6 +163,23 @@ query tiime_bill_by_type {
       b.emission_date = s.emission_date
     order by
       emission_date
+  EOQ
+
+  param "period" {}
+}
+
+query tiime_period_bill_by_type {
+  sql = <<-EOQ
+    select
+      invoicing_category_type,
+      sum(line_amount)
+    from
+      tiime_invoice,
+      jsonb_to_recordset(lines) as specs(invoicing_category_type text, line_amount float)
+    where
+      emission_date >= $1
+    group by
+      invoicing_category_type
   EOQ
 
   param "period" {}
