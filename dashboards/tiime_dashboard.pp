@@ -41,7 +41,7 @@ dashboard "tiime_dashboard" {
         width = 3
         query = query.tiime_period_billed
         args = {
-          "label" = "Billed on the current period"
+          "label" = "Billed on the selected period"
           "period" = self.input.period.value
         }
       }
