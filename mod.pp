@@ -3,7 +3,7 @@ mod "tiime_insights" {
 
   require {
     plugin "ghcr.io/francois2metz/tiime" {
-      min_version = "0.0.2"
+      min_version = "0.0.3"
     }
   }
 }

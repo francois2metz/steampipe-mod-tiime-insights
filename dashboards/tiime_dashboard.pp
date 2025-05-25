@@ -4,12 +4,17 @@ dashboard "tiime_dashboard" {
   container {
     card {
       query = query.tiime_billed_this_month
-      width = 6
+      width = 4
     }
 
     card {
       query = query.tiime_client_owns
-      width = 6
+      width = 4
+    }
+
+    card {
+      query = query.tiime_bank_balance
+      width = 4
     }
   }
 
@@ -115,6 +120,17 @@ query "tiime_client_owns" {
       'face' as icon
     from
       tiime_client
+  EOQ
+}
+
+query "tiime_bank_balance" {
+  sql = <<-EOQ
+    select
+      sum(balance_amount) as value,
+      'Bank balance (all accounts)' as label,
+      'account_balance' as icon
+    from
+      tiime_bank_account
   EOQ
 }
 
